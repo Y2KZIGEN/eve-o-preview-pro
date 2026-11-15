@@ -52,6 +52,7 @@ namespace EveOPreview.View
 		// that switch to this client.
 		Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
 		Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
+		Action<IntPtr> ThumbnailAssignGamepadButtonRequested { get; set; }
 		Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
 		IWindowManager WindowManager { get; }

@@ -106,11 +106,15 @@ namespace EveOPreview.View
 			ToolStripMenuItem assignMouse = new ToolStripMenuItem("Assign Mouse Button...");
 			assignMouse.Click += (s, e) => this.ThumbnailAssignMouseButtonRequested?.Invoke(this.Id);
 
+			ToolStripMenuItem assignGamepad = new ToolStripMenuItem("Assign Gamepad Button...");
+			assignGamepad.Click += (s, e) => this.ThumbnailAssignGamepadButtonRequested?.Invoke(this.Id);
+
 			ToolStripMenuItem clearBindings = new ToolStripMenuItem("Clear Bindings");
 			clearBindings.Click += (s, e) => this.ThumbnailClearBindingsRequested?.Invoke(this.Id);
 
 			this._contextMenu.Items.Add(assignKeyboard);
 			this._contextMenu.Items.Add(assignMouse);
+			this._contextMenu.Items.Add(assignGamepad);
 			this._contextMenu.Items.Add(new ToolStripSeparator());
 			this._contextMenu.Items.Add(clearBindings);
 		}
@@ -171,6 +175,7 @@ namespace EveOPreview.View
 
 		public Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
 		public Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
+		public Action<IntPtr> ThumbnailAssignGamepadButtonRequested { get; set; }
 		public Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
 		private bool WindowMoved = false;

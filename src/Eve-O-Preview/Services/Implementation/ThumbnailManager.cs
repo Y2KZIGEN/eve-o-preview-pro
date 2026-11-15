@@ -35,6 +35,7 @@ namespace EveOPreview.Services
 		private readonly IProcessMonitor _processMonitor;
 		private readonly IWindowManager _windowManager;
 		private readonly IGlobalMouseHook _mouseHook;
+		private readonly IGamepadHook _gamepadHook;
 		private readonly IThumbnailConfiguration _configuration;
 		private readonly DispatcherTimer _thumbnailUpdateTimer;
 		private readonly IThumbnailViewFactory _thumbnailViewFactory;
@@ -59,16 +60,18 @@ namespace EveOPreview.Services
 		private bool _bindingCaptureActive;
 		#endregion
 
-		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook)
+		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook, IGamepadHook gamepadHook)
 		{
 			this._mediator = mediator;
 			this._processMonitor = processMonitor;
 			this._windowManager = windowManager;
 			this._mouseHook = mouseHook;
+			this._gamepadHook = gamepadHook;
 			this._configuration = configuration;
 			this._thumbnailViewFactory = factory;
 
 			this._mouseHook.MouseButtonPressed += this.GlobalMouseButtonPressed;
+			this._gamepadHook.GamepadButtonPressed += this.GamepadButtonPressed;
 
 			this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
 
@@ -288,6 +291,7 @@ namespace EveOPreview.Services
 		{
 			this._thumbnailUpdateTimer.Start();
 			this._mouseHook.Start();
+			this._gamepadHook.Start();
 
 			this.RefreshThumbnails();
 		}
@@ -296,6 +300,7 @@ namespace EveOPreview.Services
 		{
 			this._thumbnailUpdateTimer.Stop();
 			this._mouseHook.Stop();
+			this._gamepadHook.Stop();
 		}
 
 		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
@@ -345,6 +350,7 @@ namespace EveOPreview.Services
 
 				view.ThumbnailAssignKeyboardHotkeyRequested = this.AssignKeyboardHotkey;
 				view.ThumbnailAssignMouseButtonRequested = this.AssignMouseButton;
+				view.ThumbnailAssignGamepadButtonRequested = this.AssignGamepadButton;
 				view.ThumbnailClearBindingsRequested = this.ClearClientBindings;
 
 				view.RegisterHotkey(this._configuration.GetClientHotkey(view.Title));
@@ -402,6 +408,7 @@ namespace EveOPreview.Services
 				view.ThumbnailToggleCycleGroup = null;
 				view.ThumbnailAssignKeyboardHotkeyRequested = null;
 				view.ThumbnailAssignMouseButtonRequested = null;
+				view.ThumbnailAssignGamepadButtonRequested = null;
 				view.ThumbnailClearBindingsRequested = null;
 
 				view.Close();
@@ -777,6 +784,85 @@ namespace EveOPreview.Services
 			foreach (KeyValuePair<IntPtr, IThumbnailView> pair in this._thumbnailViews)
 			{
 				if (this._configuration.GetClientMouseButton(pair.Value.Title) == button)
+				{
+					IThumbnailView view = pair.Value;
+					IThumbnailView previousActive = this.GetActiveClient();
+
+					view.SetHighlight();
+					this.ThumbnailActivated(pair.Key);
+
+					if (previousActive != null && previousActive.Id != view.Id)
+					{
+						previousActive.ClearBorder();
+					}
+
+					break;
+				}
+			}
+		}
+
+		private void AssignGamepadButton(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			string currentButton = this._configuration.GetClientGamepadButton(view.Title);
+
+			this._bindingCaptureActive = true;
+			try
+			{
+				using (GamepadButtonInputDialog dialog = new GamepadButtonInputDialog(view.Title, currentButton, this._gamepadHook))
+				{
+					if (dialog.ShowDialog() != DialogResult.OK)
+					{
+						return;
+					}
+
+					string selectedButton = dialog.SelectedButton;
+
+					if (!string.IsNullOrEmpty(selectedButton))
+					{
+						this.ClearGamepadButtonFromOtherClients(selectedButton, view.Title);
+					}
+
+					this._configuration.SetClientGamepadButton(view.Title, selectedButton);
+					this._mediator.Send(new SaveConfiguration());
+				}
+			}
+			finally
+			{
+				this._bindingCaptureActive = false;
+			}
+		}
+
+		private void ClearGamepadButtonFromOtherClients(string button, string keepClientTitle)
+		{
+			foreach (IThumbnailView otherView in this._thumbnailViews.Values)
+			{
+				if (otherView.Title == keepClientTitle)
+				{
+					continue;
+				}
+
+				if (string.Equals(this._configuration.GetClientGamepadButton(otherView.Title), button, StringComparison.Ordinal))
+				{
+					this._configuration.SetClientGamepadButton(otherView.Title, null);
+				}
+			}
+		}
+
+		private void GamepadButtonPressed(string button)
+		{
+			if (this._bindingCaptureActive || string.IsNullOrEmpty(button))
+			{
+				return;
+			}
+
+			foreach (KeyValuePair<IntPtr, IThumbnailView> pair in this._thumbnailViews)
+			{
+				if (string.Equals(this._configuration.GetClientGamepadButton(pair.Value.Title), button, StringComparison.Ordinal))
 				{
 					IThumbnailView view = pair.Value;
 					IThumbnailView previousActive = this.GetActiveClient();
