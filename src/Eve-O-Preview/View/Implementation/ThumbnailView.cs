@@ -32,6 +32,11 @@ namespace EveOPreview.View
 
 		private bool _isCustomMouseModeActive;
 
+		// Right-click context menu (binding assignment) tracking
+		private ContextMenuStrip _contextMenu;
+		private Point _rightMouseDownScreenPosition;
+		private const int CONTEXT_MENU_DRAG_THRESHOLD = 4;
+
 		private double _opacity;
 		 
 		private DateTime _suppressResizeEventsTimestamp;
@@ -87,6 +92,23 @@ namespace EveOPreview.View
 			SetPreventPreviews();
 			this._overlay.EnableFakePreview(this._preventPreviews.Value, false, 0, SystemColors.Control);
 			this._thumbnailManager = thumbnailManager;
+
+			this.BuildContextMenu();
+		}
+
+		private void BuildContextMenu()
+		{
+			this._contextMenu = new ContextMenuStrip();
+
+			ToolStripMenuItem assignKeyboard = new ToolStripMenuItem("Assign Keyboard / Stream Deck Hotkey...");
+			assignKeyboard.Click += (s, e) => this.ThumbnailAssignKeyboardHotkeyRequested?.Invoke(this.Id);
+
+			ToolStripMenuItem clearBindings = new ToolStripMenuItem("Clear Bindings");
+			clearBindings.Click += (s, e) => this.ThumbnailClearBindingsRequested?.Invoke(this.Id);
+
+			this._contextMenu.Items.Add(assignKeyboard);
+			this._contextMenu.Items.Add(new ToolStripSeparator());
+			this._contextMenu.Items.Add(clearBindings);
 		}
 
 		public IWindowManager WindowManager { get; }
@@ -142,6 +164,9 @@ namespace EveOPreview.View
 
 		public Action<IntPtr, bool> ThumbnailDeactivated { get; set; }
 		public Action<IntPtr> ThumbnailToggleCycleGroup { get; set; }
+
+		public Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
+		public Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
 		private bool WindowMoved = false;
 
@@ -222,6 +247,7 @@ namespace EveOPreview.View
 			this.SuppressResizeEvent();
 
 			this.IsActive = false;
+			this._contextMenu?.Dispose();
 			this._overlay.Close();
 			base.Close();
 		}
@@ -584,6 +610,16 @@ namespace EveOPreview.View
 					this.WindowMoved = false;
 
                 }
+
+				// A right-click that did not drag the thumbnail opens the
+				// binding context menu (assign keyboard / mouse / gamepad button).
+				Point releasePosition = Control.MousePosition;
+				int dragX = Math.Abs(releasePosition.X - this._rightMouseDownScreenPosition.X);
+				int dragY = Math.Abs(releasePosition.Y - this._rightMouseDownScreenPosition.Y);
+				if (dragX <= CONTEXT_MENU_DRAG_THRESHOLD && dragY <= CONTEXT_MENU_DRAG_THRESHOLD)
+				{
+					this._contextMenu?.Show(releasePosition);
+				}
 			}
 		}
 
@@ -680,6 +716,7 @@ namespace EveOPreview.View
 					break;
 				case MouseButtons.Right:
 				case MouseButtons.Left | MouseButtons.Right:
+					this._rightMouseDownScreenPosition = Control.MousePosition;
 					this.EnterCustomMouseMode();
 					break;
 			}

@@ -47,6 +47,12 @@ namespace EveOPreview.View
 		Action<IntPtr, bool> ThumbnailDeactivated { get; set; }
 		Action<IntPtr> ThumbnailToggleCycleGroup { get; set; }
 
+		// Raised from the thumbnail's right-click context menu to assign / clear
+		// the input bindings (keyboard hotkey, mouse button, gamepad button)
+		// that switch to this client.
+		Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
+		Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
+
 		IWindowManager WindowManager { get; }
 		void SetDefaultBorderColor();
 		void ClearBorder();

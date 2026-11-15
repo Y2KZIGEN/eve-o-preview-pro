@@ -333,6 +333,9 @@ namespace EveOPreview.Services
 
 				view.ThumbnailToggleCycleGroup = this.ThumbnailToggleCycleGroup;
 
+				view.ThumbnailAssignKeyboardHotkeyRequested = this.AssignKeyboardHotkey;
+				view.ThumbnailClearBindingsRequested = this.ClearClientBindings;
+
 				view.RegisterHotkey(this._configuration.GetClientHotkey(view.Title));
 
 				this.ApplyClientLayout(view);
@@ -386,6 +389,8 @@ namespace EveOPreview.Services
 				view.ThumbnailLostFocus = null;
 				view.ThumbnailActivated = null;
 				view.ThumbnailToggleCycleGroup = null;
+				view.ThumbnailAssignKeyboardHotkeyRequested = null;
+				view.ThumbnailClearBindingsRequested = null;
 
 				view.Close();
 			}
@@ -671,6 +676,42 @@ namespace EveOPreview.Services
 			view.SetOpacity(this._configuration.ThumbnailOpacity);
 
 			this._isHoverEffectActive = false;
+		}
+
+		private void AssignKeyboardHotkey(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			Keys currentHotkey = this._configuration.GetClientHotkey(view.Title);
+
+			using (HotkeyInputDialog dialog = new HotkeyInputDialog(view.Title, currentHotkey))
+			{
+				if (dialog.ShowDialog() != DialogResult.OK)
+				{
+					return;
+				}
+
+				Keys selectedHotkey = dialog.SelectedHotkey;
+
+				this._configuration.SetClientHotkey(view.Title, selectedHotkey);
+				view.RegisterHotkey(selectedHotkey);
+				this._mediator.Send(new SaveConfiguration());
+			}
+		}
+
+		private void ClearClientBindings(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			this._configuration.SetClientHotkey(view.Title, Keys.None);
+			view.UnregisterHotkey();
+			this._mediator.Send(new SaveConfiguration());
 		}
 
 		private void ThumbnailActivated(IntPtr id)
