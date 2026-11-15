@@ -30,6 +30,7 @@ namespace EveOPreview.View
 			this.MaximizeBox = false;
 			this.MinimizeBox = false;
 			this.ShowInTaskbar = false;
+			this.TopMost = true;
 			this.ClientSize = new Size(360, 150);
 			this.KeyPreview = true;
 
