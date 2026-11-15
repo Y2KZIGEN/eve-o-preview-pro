@@ -134,6 +134,32 @@ Mouse gestures are applied to the thumbnail window currently being hovered over.
 | Move thumbnail to a new position | Press right mouse button and move the mouse |
 | Adjust thumbnail height | Press both left and right mouse buttons and move the mouse up or down |
 | Adjust thumbnail width | Press both left and right mouse buttons and move the mouse left or right |
+| Open the binding menu for a thumbnail | Right-click the thumbnail **without** moving it |
+
+<div style="page-break-after: always;"></div>
+
+### Assigning Buttons to Thumbnails
+
+Each thumbnail can be bound to an input that instantly switches to (and brings
+to front) that EVE client. Right-click a thumbnail **without dragging it** to
+open the binding menu:
+
+| Menu item | What it binds |
+| --- | --- |
+| Assign Keyboard / Stream Deck Hotkey... | A key combination (e.g. `Ctrl + 1`). Because these are registered as global system hotkeys, a Stream Deck button configured with a *Hotkey* action works here as well. |
+| Assign Mouse Button... | An extra mouse button — Button 4 (X1), Button 5 (X2), or the middle button. Captured live: just press the button you want. |
+| Assign Gamepad Button... | A controller button (A/B/X/Y, D-pad, shoulders, stick clicks, Start/Back) via XInput. Captured live: just press the button on the controller. |
+| Clear Bindings | Removes all three bindings from that client. |
+
+Notes:
+
+- Bindings are saved to `EVE-O-Preview.json` immediately and work globally,
+  even while an EVE client has keyboard focus.
+- A given mouse or gamepad button can only be assigned to one client at a time;
+  assigning it to a new client automatically clears it from the others.
+- Mouse button detection uses a low-level mouse hook and gamepad detection uses
+  XInput (built into Windows); no extra software is required. The mouse hook is
+  passive and never swallows the click, so normal mouse behaviour is unchanged.
 
 <div style="page-break-after: always;"></div>
 
