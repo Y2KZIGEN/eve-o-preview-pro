@@ -87,6 +87,8 @@ namespace EveOPreview.Configuration.Implementation
 			this.FlatLayout = new Dictionary<string, Point>();
 			this.ClientLayout = new Dictionary<string, ClientLayout>();
 			this.ClientHotkey = new Dictionary<string, string>();
+			this.ClientMouseButton = new Dictionary<string, string>();
+			this.ClientGamepadButton = new Dictionary<string, string>();
 			this.MinimizeAllClientsHotkeys = new List<string> { "Control+F22" };
 			this.DisableThumbnail = new Dictionary<string, bool>();
 			this.PriorityClients = new List<string>();
@@ -310,6 +312,10 @@ namespace EveOPreview.Configuration.Implementation
 		[JsonProperty]
 		private Dictionary<string, string> ClientHotkey { get; set; }
 		[JsonProperty]
+		private Dictionary<string, string> ClientMouseButton { get; set; }
+		[JsonProperty]
+		private Dictionary<string, string> ClientGamepadButton { get; set; }
+		[JsonProperty]
 		public List<string> MinimizeAllClientsHotkeys { get; set; }
 		[JsonProperty]
 		private Dictionary<string, bool> DisableThumbnail { get; set; }
@@ -407,6 +413,44 @@ namespace EveOPreview.Configuration.Implementation
 		public void SetClientHotkey(string currentClient, Keys hotkey)
 		{
 			this.ClientHotkey[currentClient] = (new KeysConverter()).ConvertToInvariantString(hotkey);
+		}
+
+		public MouseButtons GetClientMouseButton(string currentClient)
+		{
+			if (this.ClientMouseButton.TryGetValue(currentClient, out string value)
+				&& Enum.TryParse(value, out MouseButtons button))
+			{
+				return button;
+			}
+
+			return MouseButtons.None;
+		}
+
+		public void SetClientMouseButton(string currentClient, MouseButtons button)
+		{
+			if (button == MouseButtons.None)
+			{
+				this.ClientMouseButton.Remove(currentClient);
+				return;
+			}
+
+			this.ClientMouseButton[currentClient] = button.ToString();
+		}
+
+		public string GetClientGamepadButton(string currentClient)
+		{
+			return this.ClientGamepadButton.TryGetValue(currentClient, out string value) ? value : null;
+		}
+
+		public void SetClientGamepadButton(string currentClient, string button)
+		{
+			if (string.IsNullOrEmpty(button))
+			{
+				this.ClientGamepadButton.Remove(currentClient);
+				return;
+			}
+
+			this.ClientGamepadButton[currentClient] = button;
 		}
 
 		public Keys StringToKey(string hotkey)

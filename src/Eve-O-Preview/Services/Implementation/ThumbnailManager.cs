@@ -34,6 +34,7 @@ namespace EveOPreview.Services
 		private readonly IMediator _mediator;
 		private readonly IProcessMonitor _processMonitor;
 		private readonly IWindowManager _windowManager;
+		private readonly IGlobalMouseHook _mouseHook;
 		private readonly IThumbnailConfiguration _configuration;
 		private readonly DispatcherTimer _thumbnailUpdateTimer;
 		private readonly IThumbnailViewFactory _thumbnailViewFactory;
@@ -52,15 +53,22 @@ namespace EveOPreview.Services
 		private int _hideThumbnailsDelay;
 
 		private List<HotkeyHandler> _cycleClientHotkeyHandlers = new List<HotkeyHandler>();
+
+		// While a binding capture dialog is open, global mouse / gamepad button
+		// events must not trigger client switching.
+		private bool _bindingCaptureActive;
 		#endregion
 
-		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory)
+		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook)
 		{
 			this._mediator = mediator;
 			this._processMonitor = processMonitor;
 			this._windowManager = windowManager;
+			this._mouseHook = mouseHook;
 			this._configuration = configuration;
 			this._thumbnailViewFactory = factory;
+
+			this._mouseHook.MouseButtonPressed += this.GlobalMouseButtonPressed;
 
 			this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
 
@@ -279,6 +287,7 @@ namespace EveOPreview.Services
 		public void Start()
 		{
 			this._thumbnailUpdateTimer.Start();
+			this._mouseHook.Start();
 
 			this.RefreshThumbnails();
 		}
@@ -286,6 +295,7 @@ namespace EveOPreview.Services
 		public void Stop()
 		{
 			this._thumbnailUpdateTimer.Stop();
+			this._mouseHook.Stop();
 		}
 
 		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
@@ -334,6 +344,7 @@ namespace EveOPreview.Services
 				view.ThumbnailToggleCycleGroup = this.ThumbnailToggleCycleGroup;
 
 				view.ThumbnailAssignKeyboardHotkeyRequested = this.AssignKeyboardHotkey;
+				view.ThumbnailAssignMouseButtonRequested = this.AssignMouseButton;
 				view.ThumbnailClearBindingsRequested = this.ClearClientBindings;
 
 				view.RegisterHotkey(this._configuration.GetClientHotkey(view.Title));
@@ -390,6 +401,7 @@ namespace EveOPreview.Services
 				view.ThumbnailActivated = null;
 				view.ThumbnailToggleCycleGroup = null;
 				view.ThumbnailAssignKeyboardHotkeyRequested = null;
+				view.ThumbnailAssignMouseButtonRequested = null;
 				view.ThumbnailClearBindingsRequested = null;
 
 				view.Close();
@@ -702,6 +714,86 @@ namespace EveOPreview.Services
 			}
 		}
 
+		private void AssignMouseButton(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			MouseButtons currentButton = this._configuration.GetClientMouseButton(view.Title);
+
+			this._bindingCaptureActive = true;
+			try
+			{
+				using (MouseButtonInputDialog dialog = new MouseButtonInputDialog(view.Title, currentButton, this._mouseHook))
+				{
+					if (dialog.ShowDialog() != DialogResult.OK)
+					{
+						return;
+					}
+
+					MouseButtons selectedButton = dialog.SelectedButton;
+
+					// A given physical mouse button can only switch to one client
+					if (selectedButton != MouseButtons.None)
+					{
+						this.ClearMouseButtonFromOtherClients(selectedButton, view.Title);
+					}
+
+					this._configuration.SetClientMouseButton(view.Title, selectedButton);
+					this._mediator.Send(new SaveConfiguration());
+				}
+			}
+			finally
+			{
+				this._bindingCaptureActive = false;
+			}
+		}
+
+		private void ClearMouseButtonFromOtherClients(MouseButtons button, string keepClientTitle)
+		{
+			foreach (IThumbnailView otherView in this._thumbnailViews.Values)
+			{
+				if (otherView.Title == keepClientTitle)
+				{
+					continue;
+				}
+
+				if (this._configuration.GetClientMouseButton(otherView.Title) == button)
+				{
+					this._configuration.SetClientMouseButton(otherView.Title, MouseButtons.None);
+				}
+			}
+		}
+
+		private void GlobalMouseButtonPressed(MouseButtons button)
+		{
+			if (this._bindingCaptureActive || button == MouseButtons.None)
+			{
+				return;
+			}
+
+			foreach (KeyValuePair<IntPtr, IThumbnailView> pair in this._thumbnailViews)
+			{
+				if (this._configuration.GetClientMouseButton(pair.Value.Title) == button)
+				{
+					IThumbnailView view = pair.Value;
+					IThumbnailView previousActive = this.GetActiveClient();
+
+					view.SetHighlight();
+					this.ThumbnailActivated(pair.Key);
+
+					if (previousActive != null && previousActive.Id != view.Id)
+					{
+						previousActive.ClearBorder();
+					}
+
+					break;
+				}
+			}
+		}
+
 		private void ClearClientBindings(IntPtr id)
 		{
 			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
@@ -710,6 +802,8 @@ namespace EveOPreview.Services
 			}
 
 			this._configuration.SetClientHotkey(view.Title, Keys.None);
+			this._configuration.SetClientMouseButton(view.Title, MouseButtons.None);
+			this._configuration.SetClientGamepadButton(view.Title, null);
 			view.UnregisterHotkey();
 			this._mediator.Send(new SaveConfiguration());
 		}

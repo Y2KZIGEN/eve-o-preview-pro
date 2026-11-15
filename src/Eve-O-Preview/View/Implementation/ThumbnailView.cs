@@ -103,10 +103,14 @@ namespace EveOPreview.View
 			ToolStripMenuItem assignKeyboard = new ToolStripMenuItem("Assign Keyboard / Stream Deck Hotkey...");
 			assignKeyboard.Click += (s, e) => this.ThumbnailAssignKeyboardHotkeyRequested?.Invoke(this.Id);
 
+			ToolStripMenuItem assignMouse = new ToolStripMenuItem("Assign Mouse Button...");
+			assignMouse.Click += (s, e) => this.ThumbnailAssignMouseButtonRequested?.Invoke(this.Id);
+
 			ToolStripMenuItem clearBindings = new ToolStripMenuItem("Clear Bindings");
 			clearBindings.Click += (s, e) => this.ThumbnailClearBindingsRequested?.Invoke(this.Id);
 
 			this._contextMenu.Items.Add(assignKeyboard);
+			this._contextMenu.Items.Add(assignMouse);
 			this._contextMenu.Items.Add(new ToolStripSeparator());
 			this._contextMenu.Items.Add(clearBindings);
 		}
@@ -166,6 +170,7 @@ namespace EveOPreview.View
 		public Action<IntPtr> ThumbnailToggleCycleGroup { get; set; }
 
 		public Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
+		public Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
 		public Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
 		private bool WindowMoved = false;

@@ -51,6 +51,7 @@ namespace EveOPreview.View
 		// the input bindings (keyboard hotkey, mouse button, gamepad button)
 		// that switch to this client.
 		Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
+		Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
 		Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
 		IWindowManager WindowManager { get; }
