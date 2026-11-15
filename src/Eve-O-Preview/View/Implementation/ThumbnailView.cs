@@ -112,11 +112,24 @@ namespace EveOPreview.View
 			ToolStripMenuItem clearBindings = new ToolStripMenuItem("Clear Bindings");
 			clearBindings.Click += (s, e) => this.ThumbnailClearBindingsRequested?.Invoke(this.Id);
 
+			ToolStripMenuItem setWindowSize = new ToolStripMenuItem("Set Window Size...");
+			setWindowSize.Click += (s, e) => this.ThumbnailSetWindowSizeRequested?.Invoke(this.Id);
+
+			ToolStripMenuItem setWindowSizeAll = new ToolStripMenuItem("Set Window Size for All Clients...");
+			setWindowSizeAll.Click += (s, e) => this.ThumbnailSetWindowSizeAllClientsRequested?.Invoke(this.Id);
+
+			ToolStripMenuItem clearWindowSize = new ToolStripMenuItem("Clear Window Size");
+			clearWindowSize.Click += (s, e) => this.ThumbnailClearWindowSizeRequested?.Invoke(this.Id);
+
 			this._contextMenu.Items.Add(assignKeyboard);
 			this._contextMenu.Items.Add(assignMouse);
 			this._contextMenu.Items.Add(assignGamepad);
 			this._contextMenu.Items.Add(new ToolStripSeparator());
 			this._contextMenu.Items.Add(clearBindings);
+			this._contextMenu.Items.Add(new ToolStripSeparator());
+			this._contextMenu.Items.Add(setWindowSize);
+			this._contextMenu.Items.Add(setWindowSizeAll);
+			this._contextMenu.Items.Add(clearWindowSize);
 		}
 
 		public IWindowManager WindowManager { get; }
@@ -177,6 +190,9 @@ namespace EveOPreview.View
 		public Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
 		public Action<IntPtr> ThumbnailAssignGamepadButtonRequested { get; set; }
 		public Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
+		public Action<IntPtr> ThumbnailSetWindowSizeRequested { get; set; }
+		public Action<IntPtr> ThumbnailSetWindowSizeAllClientsRequested { get; set; }
+		public Action<IntPtr> ThumbnailClearWindowSizeRequested { get; set; }
 
 		private bool WindowMoved = false;
 

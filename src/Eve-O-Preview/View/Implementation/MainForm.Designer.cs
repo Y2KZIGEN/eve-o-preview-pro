@@ -201,7 +201,7 @@ namespace EveOPreview.View
 			TitleMenuItem.Enabled = false;
 			TitleMenuItem.Name = "TitleMenuItem";
 			TitleMenuItem.Size = new Size(153, 22);
-			TitleMenuItem.Text = "EVE-O-Preview";
+			TitleMenuItem.Text = "EVE-O-Preview Pro";
 			// 
 			// SeparatorMenuItem
 			// 
@@ -1282,12 +1282,10 @@ namespace EveOPreview.View
 			// 
 			AboutPanel.BackColor = Color.Transparent;
 			AboutPanel.BorderStyle = BorderStyle.FixedSingle;
-			AboutPanel.Controls.Add(CreditMaintLabel);
-			AboutPanel.Controls.Add(DocumentationLinkLabel);
+			AboutPanel.AutoScroll = true;
 			AboutPanel.Controls.Add(DescriptionLabel);
 			AboutPanel.Controls.Add(VersionLabel);
 			AboutPanel.Controls.Add(NameLabel);
-			AboutPanel.Controls.Add(DocumentationLink);
 			AboutPanel.Dock = DockStyle.Fill;
 			AboutPanel.Location = new Point(0, 0);
 			AboutPanel.Margin = new Padding(4);
@@ -1304,7 +1302,7 @@ namespace EveOPreview.View
 			CreditMaintLabel.Padding = new Padding(9, 4, 9, 4);
 			CreditMaintLabel.Size = new Size(292, 23);
 			CreditMaintLabel.TabIndex = 7;
-			CreditMaintLabel.Text = "Credit to previous maintainer: Phrynohyas Tig-Rah";
+			CreditMaintLabel.Text = "";
 			// 
 			// DocumentationLinkLabel
 			// 
@@ -1315,16 +1313,17 @@ namespace EveOPreview.View
 			DocumentationLinkLabel.Padding = new Padding(9, 4, 9, 4);
 			DocumentationLinkLabel.Size = new Size(259, 23);
 			DocumentationLinkLabel.TabIndex = 6;
-			DocumentationLinkLabel.Text = "For more information visit the forum thread:";
+			DocumentationLinkLabel.Text = "";
 			// 
 			// DescriptionLabel
 			// 
 			DescriptionLabel.BackColor = Color.Transparent;
+			DescriptionLabel.AutoSize = true;
+			DescriptionLabel.MaximumSize = new Size(300, 0);
 			DescriptionLabel.Location = new Point(0, 34);
 			DescriptionLabel.Margin = new Padding(4, 0, 4, 0);
 			DescriptionLabel.Name = "DescriptionLabel";
 			DescriptionLabel.Padding = new Padding(9, 4, 9, 4);
-			DescriptionLabel.Size = new Size(304, 167);
 			DescriptionLabel.TabIndex = 5;
 			DescriptionLabel.Text = resources.GetString("DescriptionLabel.Text");
 			// 
@@ -1348,7 +1347,7 @@ namespace EveOPreview.View
 			NameLabel.Name = "NameLabel";
 			NameLabel.Size = new Size(131, 20);
 			NameLabel.TabIndex = 3;
-			NameLabel.Text = "EVE-O-Preview";
+			NameLabel.Text = "EVE-O-Preview Pro";
 			// 
 			// DocumentationLink
 			// 
@@ -1366,7 +1365,7 @@ namespace EveOPreview.View
 			// 
 			NotifyIcon.ContextMenuStrip = TrayMenu;
 			NotifyIcon.Icon = (Icon)resources.GetObject("NotifyIcon.Icon");
-			NotifyIcon.Text = "EVE-O-Preview";
+			NotifyIcon.Text = "EVE-O-Preview Pro";
 			NotifyIcon.Visible = true;
 			NotifyIcon.MouseDoubleClick += RestoreMainForm_Handler;
 			// 
@@ -1389,7 +1388,7 @@ namespace EveOPreview.View
 			Margin = new Padding(0);
 			MaximizeBox = false;
 			Name = "MainForm";
-			Text = "EVE-O-Preview";
+			Text = "EVE-O-Preview Pro";
 			TopMost = true;
 			FormClosing += MainFormClosing_Handler;
 			Load += MainFormResize_Handler;

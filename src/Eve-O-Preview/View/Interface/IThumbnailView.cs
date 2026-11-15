@@ -55,6 +55,13 @@ namespace EveOPreview.View
 		Action<IntPtr> ThumbnailAssignGamepadButtonRequested { get; set; }
 		Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
+		// Raised from the right-click context menu to force this client's window
+		// resolution (this client, or the default applied to all clients) or to
+		// clear the forced size for this client.
+		Action<IntPtr> ThumbnailSetWindowSizeRequested { get; set; }
+		Action<IntPtr> ThumbnailSetWindowSizeAllClientsRequested { get; set; }
+		Action<IntPtr> ThumbnailClearWindowSizeRequested { get; set; }
+
 		IWindowManager WindowManager { get; }
 		void SetDefaultBorderColor();
 		void ClearBorder();

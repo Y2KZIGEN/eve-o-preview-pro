@@ -68,7 +68,8 @@ namespace EveOPreview.View
 				System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
 				if (this._iconName == null || ((resources.GetObject(this._iconName))) == null)
 				{
-					this._iconName = "IconOriginal";
+					// Default / legacy ("IconOriginal") names resolve to the new Pro icon.
+					this._iconName = "IconPro";
 				}
 
 				// pull icon from resources

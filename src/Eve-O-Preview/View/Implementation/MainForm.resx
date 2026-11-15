@@ -199,12 +199,17 @@
   <data name="DescriptionLabel.Text" xml:space="preserve">
     <value>An advanced task switcher for EVE Online clients.
 
+Custom build — added features:
+• Per-thumbnail input bindings (keyboard, mouse, gamepad)
+• Force window resolution (per-character or all clients)
+• Save game-window position on move
+
 The program does NOT
-• modify EVE Online interface
-• display modified EVE Online interface
+• modify the EVE Online interface
+• display a modified EVE Online interface
 • broadcast any keyboard or mouse events
-• interact with EVE Online except of;
-    - resizing or bringing it to the foreground</value>
+• interact with EVE Online except for resizing or
+    bringing a client to the foreground</value>
   </data>
   <data name="NameLabel.GenerateMember" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -1322,5 +1327,8 @@ The program does NOT
   </data>
   <data name="IconUrns" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\..\Icons\EVE-O_urns.ico;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="IconPro" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\Icons\EVE-O_Pro.ico;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>

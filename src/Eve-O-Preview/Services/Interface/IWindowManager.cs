@@ -17,6 +17,8 @@ namespace EveOPreview.Services
 		void MinimizeWindow(IntPtr handle, AnimationStyle animation, bool enableAnimation);
 		void MoveWindow(IntPtr handle, int left, int top, int width, int height);
 		void MaximizeWindow(IntPtr handle);
+		void SetClientSize(IntPtr handle, int clientWidth, int clientHeight);
+		Size GetClientSize(IntPtr handle);
 		(int Left, int Top, int Right, int Bottom) GetWindowPosition(IntPtr handle);
 		bool IsWindowMaximized(IntPtr handle);
 		bool IsWindowMinimized(IntPtr handle);

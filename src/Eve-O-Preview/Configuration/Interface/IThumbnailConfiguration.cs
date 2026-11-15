@@ -91,6 +91,10 @@ namespace EveOPreview.Configuration
 		ClientLayout GetClientLayout(string currentClient);
 		void SetClientLayout(string currentClient, ClientLayout layout);
 
+		Size DefaultClientWindowSize { get; set; }
+		Size GetClientWindowSize(string currentClient);
+		void SetClientWindowSize(string currentClient, Size size);
+
 		Keys GetClientHotkey(string currentClient);
 		void SetClientHotkey(string currentClient, Keys hotkey);
 		MouseButtons GetClientMouseButton(string currentClient);

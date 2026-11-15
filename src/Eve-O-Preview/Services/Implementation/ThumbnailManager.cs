@@ -59,6 +59,13 @@ namespace EveOPreview.Services
 		// While a binding capture dialog is open, global mouse / gamepad button
 		// events must not trigger client switching.
 		private bool _bindingCaptureActive;
+
+		// EVE repositions its own windows shortly after launch, overriding the
+		// layout we restore at startup. We re-apply the saved layout a few times
+		// over the first seconds so it wins once EVE has settled.
+		private DispatcherTimer _layoutReapplyTimer;
+		private int _layoutReapplyTicksRemaining;
+		private const int LAYOUT_REAPPLY_TICKS = 6;
 		#endregion
 
 		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook, IGamepadHook gamepadHook, IClientWindowHook clientWindowHook)
@@ -298,6 +305,8 @@ namespace EveOPreview.Services
 			this._clientWindowHook.Start();
 
 			this.RefreshThumbnails();
+
+			this.StartLayoutReapply();
 		}
 
 		public void Stop()
@@ -306,6 +315,48 @@ namespace EveOPreview.Services
 			this._mouseHook.Stop();
 			this._gamepadHook.Stop();
 			this._clientWindowHook.Stop();
+
+			if (this._layoutReapplyTimer != null)
+			{
+				this._layoutReapplyTimer.Stop();
+				this._layoutReapplyTimer.Tick -= this.LayoutReapplyTick;
+				this._layoutReapplyTimer = null;
+			}
+		}
+
+		private void StartLayoutReapply()
+		{
+			if (!this._configuration.EnableClientLayoutTracking)
+			{
+				return;
+			}
+
+			this._layoutReapplyTicksRemaining = ThumbnailManager.LAYOUT_REAPPLY_TICKS;
+
+			if (this._layoutReapplyTimer == null)
+			{
+				this._layoutReapplyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+				this._layoutReapplyTimer.Tick += this.LayoutReapplyTick;
+			}
+
+			this._layoutReapplyTimer.Start();
+		}
+
+		private void LayoutReapplyTick(object sender, EventArgs e)
+		{
+			foreach (IThumbnailView view in this._thumbnailViews.Values)
+			{
+				if (view.Title != ThumbnailManager.DEFAULT_CLIENT_TITLE)
+				{
+					this.ApplyClientLayout(view);
+				}
+			}
+
+			this._layoutReapplyTicksRemaining--;
+			if (this._layoutReapplyTicksRemaining <= 0)
+			{
+				this._layoutReapplyTimer.Stop();
+			}
 		}
 
 		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
@@ -358,10 +409,18 @@ namespace EveOPreview.Services
 				view.ThumbnailAssignGamepadButtonRequested = this.AssignGamepadButton;
 				view.ThumbnailClearBindingsRequested = this.ClearClientBindings;
 
+				view.ThumbnailSetWindowSizeRequested = this.AssignClientWindowSize;
+				view.ThumbnailSetWindowSizeAllClientsRequested = this.AssignClientWindowSizeAllClients;
+				view.ThumbnailClearWindowSizeRequested = this.ClearClientWindowSize;
+
 				view.RegisterHotkey(this._configuration.GetClientHotkey(view.Title));
 
-				this.ApplyClientLayout(view);
+				// Caption bar must be applied BEFORE the layout: toggling the caption
+				// changes the window frame, so applying it after a move would shift the
+				// window (title bar creeping off the top of the screen on each launch).
 				this.ApplyCaptionBar(view);
+				this.ApplyClientLayout(view);
+				this.ApplyClientWindowSize(view);
 
 				// TODO Add extension filter here later
 				if (view.Title != ThumbnailManager.DEFAULT_CLIENT_TITLE)
@@ -388,8 +447,9 @@ namespace EveOPreview.Services
 
 					view.RegisterHotkey(this._configuration.GetClientHotkey(process.Title));
 
-					this.ApplyClientLayout(view);
 					this.ApplyCaptionBar(view);
+					this.ApplyClientLayout(view);
+					this.ApplyClientWindowSize(view);
 				}
 			}
 
@@ -415,6 +475,9 @@ namespace EveOPreview.Services
 				view.ThumbnailAssignMouseButtonRequested = null;
 				view.ThumbnailAssignGamepadButtonRequested = null;
 				view.ThumbnailClearBindingsRequested = null;
+				view.ThumbnailSetWindowSizeRequested = null;
+				view.ThumbnailSetWindowSizeAllClientsRequested = null;
+				view.ThumbnailClearWindowSizeRequested = null;
 
 				view.Close();
 			}
@@ -899,6 +962,92 @@ namespace EveOPreview.Services
 			this._mediator.Send(new SaveConfiguration());
 		}
 
+		// Forces the configured window resolution onto a client. Position is left to
+		// EVE (SWP_NOMOVE), so this cannot cause the frame to creep off-screen. Setting
+		// a fixed absolute size on each launch is idempotent - the window never grows.
+		private void ApplyClientWindowSize(IThumbnailView view)
+		{
+			if (view.Title == ThumbnailManager.DEFAULT_CLIENT_TITLE)
+			{
+				return;
+			}
+
+			Size size = this._configuration.GetClientWindowSize(view.Title);
+			if (size.IsEmpty || size.Width <= 0 || size.Height <= 0)
+			{
+				return;
+			}
+
+			this._windowManager.SetClientSize(view.Id, size.Width, size.Height);
+		}
+
+		private void AssignClientWindowSize(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			// Prefill with the configured size, or the client's current render area.
+			Size current = this._configuration.GetClientWindowSize(view.Title);
+			if (current.IsEmpty)
+			{
+				current = this._windowManager.GetClientSize(view.Id);
+			}
+
+			using (WindowSizeInputDialog dialog = new WindowSizeInputDialog(view.Title, current, false))
+			{
+				if (dialog.ShowDialog() != DialogResult.OK)
+				{
+					return;
+				}
+
+				this._configuration.SetClientWindowSize(view.Title, dialog.SelectedSize);
+				this.ApplyClientWindowSize(view);
+				this._mediator.Send(new SaveConfiguration());
+			}
+		}
+
+		private void AssignClientWindowSizeAllClients(IntPtr id)
+		{
+			// Seed from the existing global default, or the clicked client's current size.
+			Size current = this._configuration.DefaultClientWindowSize;
+			if (current.IsEmpty && this._thumbnailViews.TryGetValue(id, out IThumbnailView seedView))
+			{
+				current = this._windowManager.GetClientSize(seedView.Id);
+			}
+
+			using (WindowSizeInputDialog dialog = new WindowSizeInputDialog(null, current, true))
+			{
+				if (dialog.ShowDialog() != DialogResult.OK)
+				{
+					return;
+				}
+
+				this._configuration.DefaultClientWindowSize = dialog.SelectedSize;
+
+				// Re-apply to every logged-in client. Clients with a per-client override
+				// keep their own size (GetClientWindowSize prefers the per-client entry).
+				foreach (IThumbnailView view in this._thumbnailViews.Values)
+				{
+					this.ApplyClientWindowSize(view);
+				}
+
+				this._mediator.Send(new SaveConfiguration());
+			}
+		}
+
+		private void ClearClientWindowSize(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			this._configuration.SetClientWindowSize(view.Title, Size.Empty);
+			this._mediator.Send(new SaveConfiguration());
+		}
+
 		private void ThumbnailActivated(IntPtr id)
 		{
 			IThumbnailView view = this._thumbnailViews[id];
@@ -1137,6 +1286,19 @@ namespace EveOPreview.Services
 			bool changed = false;
 			changed = changed | SetWindowStyle(view, InteropConstants.WS_CAPTION, enable);
 			changed = changed | SetWindowStyle(view, InteropConstants.WS_THICKFRAME, enable);
+
+			if (changed)
+			{
+				// Force the window frame to be recalculated NOW. A style change made
+				// with SetWindowLong stays pending until a SetWindowPos with
+				// SWP_FRAMECHANGED (or the next move). Previously it materialized during
+				// the subsequent layout MoveWindow, growing the window by the caption
+				// height and creeping the title bar off the top a bit more each launch.
+				User32NativeMethods.SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0,
+					InteropConstants.SWP_NOMOVE | InteropConstants.SWP_NOSIZE |
+					InteropConstants.SWP_NOZORDER | InteropConstants.SWP_NOACTIVATE |
+					InteropConstants.SWP_NOOWNERZORDER | InteropConstants.SWP_FRAMECHANGED);
+			}
 		}
 		private void ApplyClientLayout(IThumbnailView view)
 		{
@@ -1167,7 +1329,16 @@ namespace EveOPreview.Services
 			}
 			else
 			{
-				this._windowManager.MoveWindow(clientHandle, clientLayout.X, clientLayout.Y, clientLayout.Width, clientLayout.Height);
+				// Restore the saved top-left position, but keep the window's current
+				// size. EVE controls its own window size (tied to its resolution), so
+				// forcing a saved size here fought EVE and made the frame creep upward
+				// off the screen a little more on every launch. Honoring the position
+				// only keeps the title bar exactly where the user left it.
+				(int Left, int Top, int Right, int Bottom) current = this._windowManager.GetWindowPosition(clientHandle);
+				int width = Math.Abs(current.Right - current.Left);
+				int height = Math.Abs(current.Bottom - current.Top);
+
+				this._windowManager.MoveWindow(clientHandle, clientLayout.X, clientLayout.Y, width, height);
 			}
 		}
 

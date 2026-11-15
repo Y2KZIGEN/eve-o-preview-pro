@@ -12,7 +12,8 @@ namespace EveOPreview.Presenters
 	public class MainFormPresenter : Presenter<IMainFormView>, IMainFormPresenter
 	{
 		#region Private constants
-		private const string FORUM_URL = @"https://forums.eveonline.com/t/eve-o-preview-v8-0-2-0";
+		// Upstream forum/branding link removed in this fork.
+		private const string FORUM_URL = "";
 		#endregion
 
 		#region Private fields
@@ -53,7 +54,6 @@ namespace EveOPreview.Presenters
 		{
 			this._suppressSizeNotifications = true;
 			this.LoadApplicationSettings();
-			this.View.SetDocumentationUrl(MainFormPresenter.FORUM_URL);
 			this.View.SetVersionInfo(this.GetApplicationVersion());
 			if (this._configuration.MinimizeToTray)
 			{
@@ -284,6 +284,12 @@ namespace EveOPreview.Presenters
 
 		private void OpenDocumentationLink()
 		{
+			// The documentation / forum link was removed in this fork.
+			if (string.IsNullOrEmpty(MainFormPresenter.FORUM_URL))
+			{
+				return;
+			}
+
 			// funtimes
 			// https://brockallen.com/2016/09/24/process-start-for-urls-on-net-core/
 			// https://github.com/dotnet/runtime/issues/17938
@@ -305,7 +311,7 @@ namespace EveOPreview.Presenters
 #if LINUX
   target = "Linux";
 #endif
-			return $"{version.Major}.{version.Minor}.{version.Build}.{version.Revision} {target}";
+			return $"{version.Major}.{version.Minor}.{version.Build} {target}";
 		}
 
 		private void ExitApplication()

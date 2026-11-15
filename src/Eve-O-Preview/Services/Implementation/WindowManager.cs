@@ -267,6 +267,37 @@ namespace EveOPreview.Services.Implementation
 			User32NativeMethods.ShowWindowAsync(handle, InteropConstants.SW_SHOWMAXIMIZED);
         }
 
+		public Size GetClientSize(IntPtr handle)
+		{
+			User32NativeMethods.GetClientRect(handle, out RECT clientRectangle);
+			return new Size(clientRectangle.Right - clientRectangle.Left, clientRectangle.Bottom - clientRectangle.Top);
+		}
+
+		public void SetClientSize(IntPtr handle, int clientWidth, int clientHeight)
+		{
+			if (clientWidth <= 0 || clientHeight <= 0)
+			{
+				return;
+			}
+
+			// The caller passes the desired EVE render (client) area. Translate it to a
+			// full window size by adding the current non-client frame (borders + caption),
+			// so the rendered resolution ends up exactly clientWidth x clientHeight.
+			User32NativeMethods.GetWindowRect(handle, out RECT windowRectangle);
+			User32NativeMethods.GetClientRect(handle, out RECT clientRectangle);
+
+			int frameWidth = (windowRectangle.Right - windowRectangle.Left) - (clientRectangle.Right - clientRectangle.Left);
+			int frameHeight = (windowRectangle.Bottom - windowRectangle.Top) - (clientRectangle.Bottom - clientRectangle.Top);
+
+			int targetWidth = clientWidth + frameWidth;
+			int targetHeight = clientHeight + frameHeight;
+
+			// SWP_NOMOVE keeps the window's current top-left corner, so EVE stays in
+			// charge of position (no upward creep) while we force only the size.
+			User32NativeMethods.SetWindowPos(handle, IntPtr.Zero, 0, 0, targetWidth, targetHeight,
+				InteropConstants.SWP_NOMOVE | InteropConstants.SWP_NOZORDER | InteropConstants.SWP_NOACTIVATE);
+		}
+
 		public (int Left, int Top, int Right, int Bottom) GetWindowPosition(IntPtr handle)
 		{
 			User32NativeMethods.GetWindowRect(handle, out RECT windowRectangle);

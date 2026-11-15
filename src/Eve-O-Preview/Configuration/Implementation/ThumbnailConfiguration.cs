@@ -89,6 +89,8 @@ namespace EveOPreview.Configuration.Implementation
 			this.ClientHotkey = new Dictionary<string, string>();
 			this.ClientMouseButton = new Dictionary<string, string>();
 			this.ClientGamepadButton = new Dictionary<string, string>();
+			this.PerClientWindowSize = new Dictionary<string, Size>();
+			this.DefaultClientWindowSize = Size.Empty;
 			this.MinimizeAllClientsHotkeys = new List<string> { "Control+F22" };
 			this.DisableThumbnail = new Dictionary<string, bool>();
 			this.PriorityClients = new List<string>();
@@ -316,6 +318,11 @@ namespace EveOPreview.Configuration.Implementation
 		[JsonProperty]
 		private Dictionary<string, string> ClientGamepadButton { get; set; }
 		[JsonProperty]
+		private Dictionary<string, Size> PerClientWindowSize { get; set; }
+
+		[JsonProperty("DefaultClientWindowSize")]
+		public Size DefaultClientWindowSize { get; set; }
+		[JsonProperty]
 		public List<string> MinimizeAllClientsHotkeys { get; set; }
 		[JsonProperty]
 		private Dictionary<string, bool> DisableThumbnail { get; set; }
@@ -395,6 +402,30 @@ namespace EveOPreview.Configuration.Implementation
 		public void SetClientLayout(string currentClient, ClientLayout layout)
 		{
 			this.ClientLayout[currentClient] = layout;
+		}
+
+		public Size GetClientWindowSize(string currentClient)
+		{
+			// A per-client size always wins over the global default. Size.Empty means
+			// "no forced size" (let EVE keep whatever size it launched with).
+			if (this.PerClientWindowSize.TryGetValue(currentClient, out Size size)
+				&& size.Width > 0 && size.Height > 0)
+			{
+				return size;
+			}
+
+			return this.DefaultClientWindowSize;
+		}
+
+		public void SetClientWindowSize(string currentClient, Size size)
+		{
+			if (size.IsEmpty || size.Width <= 0 || size.Height <= 0)
+			{
+				this.PerClientWindowSize.Remove(currentClient);
+				return;
+			}
+
+			this.PerClientWindowSize[currentClient] = size;
 		}
 
 		public Keys GetClientHotkey(string currentClient)
