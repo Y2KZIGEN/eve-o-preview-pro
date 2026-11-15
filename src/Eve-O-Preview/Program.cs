@@ -86,6 +86,7 @@ namespace EveOPreview
 			container.Register<IProcessMonitor>();
 			container.Register<IGlobalMouseHook>();
 			container.Register<IGamepadHook>();
+			container.Register<IClientWindowHook>();
 
 			// MediatR
 			container.Register<IMediator, MediatR.Mediator>();

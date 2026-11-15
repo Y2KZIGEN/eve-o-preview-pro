@@ -36,6 +36,7 @@ namespace EveOPreview.Services
 		private readonly IWindowManager _windowManager;
 		private readonly IGlobalMouseHook _mouseHook;
 		private readonly IGamepadHook _gamepadHook;
+		private readonly IClientWindowHook _clientWindowHook;
 		private readonly IThumbnailConfiguration _configuration;
 		private readonly DispatcherTimer _thumbnailUpdateTimer;
 		private readonly IThumbnailViewFactory _thumbnailViewFactory;
@@ -60,18 +61,20 @@ namespace EveOPreview.Services
 		private bool _bindingCaptureActive;
 		#endregion
 
-		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook, IGamepadHook gamepadHook)
+		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook, IGamepadHook gamepadHook, IClientWindowHook clientWindowHook)
 		{
 			this._mediator = mediator;
 			this._processMonitor = processMonitor;
 			this._windowManager = windowManager;
 			this._mouseHook = mouseHook;
 			this._gamepadHook = gamepadHook;
+			this._clientWindowHook = clientWindowHook;
 			this._configuration = configuration;
 			this._thumbnailViewFactory = factory;
 
 			this._mouseHook.MouseButtonPressed += this.GlobalMouseButtonPressed;
 			this._gamepadHook.GamepadButtonPressed += this.GamepadButtonPressed;
+			this._clientWindowHook.WindowMoveResizeEnded += this.ClientWindowMoveResizeEnded;
 
 			this._activeClient = (IntPtr.Zero, ThumbnailManager.DEFAULT_CLIENT_TITLE);
 
@@ -292,6 +295,7 @@ namespace EveOPreview.Services
 			this._thumbnailUpdateTimer.Start();
 			this._mouseHook.Start();
 			this._gamepadHook.Start();
+			this._clientWindowHook.Start();
 
 			this.RefreshThumbnails();
 		}
@@ -301,6 +305,7 @@ namespace EveOPreview.Services
 			this._thumbnailUpdateTimer.Stop();
 			this._mouseHook.Stop();
 			this._gamepadHook.Stop();
+			this._clientWindowHook.Stop();
 		}
 
 		private void ThumbnailUpdateTimerTick(object sender, EventArgs e)
@@ -1164,6 +1169,24 @@ namespace EveOPreview.Services
 			{
 				this._windowManager.MoveWindow(clientHandle, clientLayout.X, clientLayout.Y, clientLayout.Width, clientLayout.Height);
 			}
+		}
+
+		private void ClientWindowMoveResizeEnded(IntPtr hwnd)
+		{
+			if (!this._configuration.EnableClientLayoutTracking)
+			{
+				return;
+			}
+
+			// Only react when the moved window is one of the tracked EVE clients
+			if (!this._thumbnailViews.ContainsKey(hwnd))
+			{
+				return;
+			}
+
+			// Capture and persist the new position immediately - no client switch
+			// required. UpdateClientLayouts only writes to disk if something changed.
+			this.UpdateClientLayouts();
 		}
 
 		private void UpdateClientLayouts()
