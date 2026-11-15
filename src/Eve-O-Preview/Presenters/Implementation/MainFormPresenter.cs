@@ -85,6 +85,11 @@ namespace EveOPreview.Presenters
 				return;
 			}
 
+			// Even when only minimizing to the tray, persist the current config so
+			// thumbnail and client window positions are not lost if the app is later
+			// closed abruptly (with "Minimize to tray" on, closing via X comes here).
+			this._configurationStorage.Save();
+
 			request.Allow = false;
 			this.View.Minimize();
 		}

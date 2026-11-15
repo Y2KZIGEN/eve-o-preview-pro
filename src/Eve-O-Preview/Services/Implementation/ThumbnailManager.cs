@@ -1173,6 +1173,8 @@ namespace EveOPreview.Services
 				return;
 			}
 
+			bool layoutChanged = false;
+
 			foreach (KeyValuePair<IntPtr, IThumbnailView> entry in this._thumbnailViews)
 			{
 				IThumbnailView view = entry.Value;
@@ -1194,8 +1196,36 @@ namespace EveOPreview.Services
 					continue;
 				}
 
-				this._configuration.SetClientLayout(view.Title, new ClientLayout(position.Left, position.Top, width, height, isMaximized));
+				ClientLayout newLayout = new ClientLayout(position.Left, position.Top, width, height, isMaximized);
+
+				if (ThumbnailManager.HasClientLayoutChanged(this._configuration.GetClientLayout(view.Title), newLayout))
+				{
+					this._configuration.SetClientLayout(view.Title, newLayout);
+					layoutChanged = true;
+				}
 			}
+
+			// Persist client window positions to disk as soon as a window is moved
+			// or resized. Previously these were only written on a clean exit, so
+			// with "Minimize to tray" enabled the positions were lost.
+			if (layoutChanged)
+			{
+				this._mediator.Send(new SaveConfiguration());
+			}
+		}
+
+		private static bool HasClientLayoutChanged(ClientLayout existing, ClientLayout updated)
+		{
+			if (existing == null)
+			{
+				return true;
+			}
+
+			return existing.X != updated.X
+				|| existing.Y != updated.Y
+				|| existing.Width != updated.Width
+				|| existing.Height != updated.Height
+				|| existing.IsMaximized != updated.IsMaximized;
 		}
 
 		private void EnqueueLocationChange(IThumbnailView view)
