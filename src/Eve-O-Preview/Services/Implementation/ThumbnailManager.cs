@@ -35,6 +35,7 @@ namespace EveOPreview.Services
 		private readonly IProcessMonitor _processMonitor;
 		private readonly IWindowManager _windowManager;
 		private readonly IGlobalMouseHook _mouseHook;
+		private readonly IGlobalKeyboardHook _keyboardHook;
 		private readonly IGamepadHook _gamepadHook;
 		private readonly IClientWindowHook _clientWindowHook;
 		private readonly IThumbnailConfiguration _configuration;
@@ -68,18 +69,20 @@ namespace EveOPreview.Services
 		private const int LAYOUT_REAPPLY_TICKS = 6;
 		#endregion
 
-		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook, IGamepadHook gamepadHook, IClientWindowHook clientWindowHook)
+		public ThumbnailManager(IMediator mediator, IThumbnailConfiguration configuration, IProcessMonitor processMonitor, IWindowManager windowManager, IThumbnailViewFactory factory, IGlobalMouseHook mouseHook, IGlobalKeyboardHook keyboardHook, IGamepadHook gamepadHook, IClientWindowHook clientWindowHook)
 		{
 			this._mediator = mediator;
 			this._processMonitor = processMonitor;
 			this._windowManager = windowManager;
 			this._mouseHook = mouseHook;
+			this._keyboardHook = keyboardHook;
 			this._gamepadHook = gamepadHook;
 			this._clientWindowHook = clientWindowHook;
 			this._configuration = configuration;
 			this._thumbnailViewFactory = factory;
 
 			this._mouseHook.MouseButtonPressed += this.GlobalMouseButtonPressed;
+			this._keyboardHook.KeyComboPressed += this.GlobalKeyComboPressed;
 			this._gamepadHook.GamepadButtonPressed += this.GamepadButtonPressed;
 			this._clientWindowHook.WindowMoveResizeEnded += this.ClientWindowMoveResizeEnded;
 
@@ -301,6 +304,7 @@ namespace EveOPreview.Services
 		{
 			this._thumbnailUpdateTimer.Start();
 			this._mouseHook.Start();
+			this._keyboardHook.Start();
 			this._gamepadHook.Start();
 			this._clientWindowHook.Start();
 
@@ -313,6 +317,7 @@ namespace EveOPreview.Services
 		{
 			this._thumbnailUpdateTimer.Stop();
 			this._mouseHook.Stop();
+			this._keyboardHook.Stop();
 			this._gamepadHook.Stop();
 			this._clientWindowHook.Stop();
 
@@ -407,6 +412,7 @@ namespace EveOPreview.Services
 				view.ThumbnailAssignKeyboardHotkeyRequested = this.AssignKeyboardHotkey;
 				view.ThumbnailAssignMouseButtonRequested = this.AssignMouseButton;
 				view.ThumbnailAssignGamepadButtonRequested = this.AssignGamepadButton;
+				view.ThumbnailAssignInsertHotkeyRequested = this.AssignInsertHotkey;
 				view.ThumbnailClearBindingsRequested = this.ClearClientBindings;
 
 				view.ThumbnailSetWindowSizeRequested = this.AssignClientWindowSize;
@@ -474,6 +480,7 @@ namespace EveOPreview.Services
 				view.ThumbnailAssignKeyboardHotkeyRequested = null;
 				view.ThumbnailAssignMouseButtonRequested = null;
 				view.ThumbnailAssignGamepadButtonRequested = null;
+				view.ThumbnailAssignInsertHotkeyRequested = null;
 				view.ThumbnailClearBindingsRequested = null;
 				view.ThumbnailSetWindowSizeRequested = null;
 				view.ThumbnailSetWindowSizeAllClientsRequested = null;
@@ -948,6 +955,91 @@ namespace EveOPreview.Services
 			}
 		}
 
+		private void AssignInsertHotkey(IntPtr id)
+		{
+			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
+			{
+				return;
+			}
+
+			Keys currentActionKey = this._configuration.GetClientInsertHotkey(view.Title);
+
+			// The low-level keyboard hook must not switch clients while we capture.
+			this._bindingCaptureActive = true;
+			try
+			{
+				using (InsertComboInputDialog dialog = new InsertComboInputDialog(view.Title, currentActionKey))
+				{
+					if (dialog.ShowDialog() != DialogResult.OK)
+					{
+						return;
+					}
+
+					Keys selectedActionKey = dialog.SelectedActionKey;
+
+					// A given Insert + key combo can only switch to one client
+					if (selectedActionKey != Keys.None)
+					{
+						this.ClearInsertHotkeyFromOtherClients(selectedActionKey, view.Title);
+					}
+
+					this._configuration.SetClientInsertHotkey(view.Title, selectedActionKey);
+					this._mediator.Send(new SaveConfiguration());
+				}
+			}
+			finally
+			{
+				this._bindingCaptureActive = false;
+			}
+		}
+
+		private void ClearInsertHotkeyFromOtherClients(Keys actionKey, string keepClientTitle)
+		{
+			foreach (IThumbnailView otherView in this._thumbnailViews.Values)
+			{
+				if (otherView.Title == keepClientTitle)
+				{
+					continue;
+				}
+
+				if (this._configuration.GetClientInsertHotkey(otherView.Title) == actionKey)
+				{
+					this._configuration.SetClientInsertHotkey(otherView.Title, Keys.None);
+				}
+			}
+		}
+
+		// Returns true when the Insert + key combo was bound to a client (the action
+		// key is then swallowed by the hook so the game never sees it).
+		private bool GlobalKeyComboPressed(Keys actionKey)
+		{
+			if (this._bindingCaptureActive || actionKey == Keys.None)
+			{
+				return false;
+			}
+
+			foreach (KeyValuePair<IntPtr, IThumbnailView> pair in this._thumbnailViews)
+			{
+				if (this._configuration.GetClientInsertHotkey(pair.Value.Title) == actionKey)
+				{
+					IThumbnailView view = pair.Value;
+					IThumbnailView previousActive = this.GetActiveClient();
+
+					view.SetHighlight();
+					this.ThumbnailActivated(pair.Key);
+
+					if (previousActive != null && previousActive.Id != view.Id)
+					{
+						previousActive.ClearBorder();
+					}
+
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		private void ClearClientBindings(IntPtr id)
 		{
 			if (!this._thumbnailViews.TryGetValue(id, out IThumbnailView view))
@@ -958,6 +1050,7 @@ namespace EveOPreview.Services
 			this._configuration.SetClientHotkey(view.Title, Keys.None);
 			this._configuration.SetClientMouseButton(view.Title, MouseButtons.None);
 			this._configuration.SetClientGamepadButton(view.Title, null);
+			this._configuration.SetClientInsertHotkey(view.Title, Keys.None);
 			view.UnregisterHotkey();
 			this._mediator.Send(new SaveConfiguration());
 		}

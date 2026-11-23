@@ -85,6 +85,7 @@ namespace EveOPreview
 			container.Register<IWindowManager>();
 			container.Register<IProcessMonitor>();
 			container.Register<IGlobalMouseHook>();
+			container.Register<IGlobalKeyboardHook>();
 			container.Register<IGamepadHook>();
 			container.Register<IClientWindowHook>();
 

@@ -53,6 +53,7 @@ namespace EveOPreview.View
 		Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
 		Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
 		Action<IntPtr> ThumbnailAssignGamepadButtonRequested { get; set; }
+		Action<IntPtr> ThumbnailAssignInsertHotkeyRequested { get; set; }
 		Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 
 		// Raised from the right-click context menu to force this client's window

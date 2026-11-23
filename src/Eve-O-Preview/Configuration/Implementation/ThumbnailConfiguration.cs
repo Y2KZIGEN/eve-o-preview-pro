@@ -89,6 +89,7 @@ namespace EveOPreview.Configuration.Implementation
 			this.ClientHotkey = new Dictionary<string, string>();
 			this.ClientMouseButton = new Dictionary<string, string>();
 			this.ClientGamepadButton = new Dictionary<string, string>();
+			this.ClientInsertHotkey = new Dictionary<string, string>();
 			this.PerClientWindowSize = new Dictionary<string, Size>();
 			this.DefaultClientWindowSize = Size.Empty;
 			this.MinimizeAllClientsHotkeys = new List<string> { "Control+F22" };
@@ -318,6 +319,8 @@ namespace EveOPreview.Configuration.Implementation
 		[JsonProperty]
 		private Dictionary<string, string> ClientGamepadButton { get; set; }
 		[JsonProperty]
+		private Dictionary<string, string> ClientInsertHotkey { get; set; }
+		[JsonProperty]
 		private Dictionary<string, Size> PerClientWindowSize { get; set; }
 
 		[JsonProperty("DefaultClientWindowSize")]
@@ -482,6 +485,32 @@ namespace EveOPreview.Configuration.Implementation
 			}
 
 			this.ClientGamepadButton[currentClient] = button;
+		}
+
+		public Keys GetClientInsertHotkey(string currentClient)
+		{
+			if (this.ClientInsertHotkey.TryGetValue(currentClient, out string hotkey))
+			{
+				// Protect from incorrect values
+				object rawValue = (new KeysConverter()).ConvertFromInvariantString(hotkey);
+				return rawValue != null ? ((Keys)rawValue & Keys.KeyCode) : Keys.None;
+			}
+
+			return Keys.None;
+		}
+
+		public void SetClientInsertHotkey(string currentClient, Keys actionKey)
+		{
+			// Only the base key is stored - Insert is the implied prefix.
+			Keys key = actionKey & Keys.KeyCode;
+
+			if (key == Keys.None)
+			{
+				this.ClientInsertHotkey.Remove(currentClient);
+				return;
+			}
+
+			this.ClientInsertHotkey[currentClient] = (new KeysConverter()).ConvertToInvariantString(key);
 		}
 
 		public Keys StringToKey(string hotkey)

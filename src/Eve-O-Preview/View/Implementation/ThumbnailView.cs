@@ -109,6 +109,9 @@ namespace EveOPreview.View
 			ToolStripMenuItem assignGamepad = new ToolStripMenuItem("Assign Gamepad Button...");
 			assignGamepad.Click += (s, e) => this.ThumbnailAssignGamepadButtonRequested?.Invoke(this.Id);
 
+			ToolStripMenuItem assignInsert = new ToolStripMenuItem("Assign Insert Combo (Insert + key)...");
+			assignInsert.Click += (s, e) => this.ThumbnailAssignInsertHotkeyRequested?.Invoke(this.Id);
+
 			ToolStripMenuItem clearBindings = new ToolStripMenuItem("Clear Bindings");
 			clearBindings.Click += (s, e) => this.ThumbnailClearBindingsRequested?.Invoke(this.Id);
 
@@ -124,6 +127,7 @@ namespace EveOPreview.View
 			this._contextMenu.Items.Add(assignKeyboard);
 			this._contextMenu.Items.Add(assignMouse);
 			this._contextMenu.Items.Add(assignGamepad);
+			this._contextMenu.Items.Add(assignInsert);
 			this._contextMenu.Items.Add(new ToolStripSeparator());
 			this._contextMenu.Items.Add(clearBindings);
 			this._contextMenu.Items.Add(new ToolStripSeparator());
@@ -189,6 +193,7 @@ namespace EveOPreview.View
 		public Action<IntPtr> ThumbnailAssignKeyboardHotkeyRequested { get; set; }
 		public Action<IntPtr> ThumbnailAssignMouseButtonRequested { get; set; }
 		public Action<IntPtr> ThumbnailAssignGamepadButtonRequested { get; set; }
+		public Action<IntPtr> ThumbnailAssignInsertHotkeyRequested { get; set; }
 		public Action<IntPtr> ThumbnailClearBindingsRequested { get; set; }
 		public Action<IntPtr> ThumbnailSetWindowSizeRequested { get; set; }
 		public Action<IntPtr> ThumbnailSetWindowSizeAllClientsRequested { get; set; }

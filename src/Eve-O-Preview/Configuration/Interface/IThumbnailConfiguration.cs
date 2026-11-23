@@ -101,6 +101,8 @@ namespace EveOPreview.Configuration
 		void SetClientMouseButton(string currentClient, MouseButtons button);
 		string GetClientGamepadButton(string currentClient);
 		void SetClientGamepadButton(string currentClient, string button);
+		Keys GetClientInsertHotkey(string currentClient);
+		void SetClientInsertHotkey(string currentClient, Keys actionKey);
 		Keys StringToKey(string hotkey);
 		bool IsPriorityClient(string currentClient);
 		bool IsExecutableToPreview(string processName);
