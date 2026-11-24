@@ -4,6 +4,15 @@ All notable changes to **EVE-O-Preview Pro** are documented here.
 
 The version scheme is `Features.Subfeatures.Fixes`.
 
+## [3.7.0]
+
+### Added
+
+- **Insert-prefix client switching.** Right-click a thumbnail → **Assign Insert Combo (Insert + key)...** to bind a hold-Insert-then-tap combo (e.g. hold `Insert`, tap `1`) that switches to that client. Saved per character.
+  - Implemented with a dedicated low-level keyboard hook (`WH_KEYBOARD_LL`) because Windows global hotkeys only accept Ctrl/Alt/Shift/Win as modifiers — `Insert` is a regular key, so it can't be a `RegisterHotKey` modifier.
+  - While `Insert` is held, the tapped action key is swallowed so it doesn't leak into the game; `Insert` itself is never swallowed. Key auto-repeat is suppressed.
+  - A given action key can only be bound to one client at a time; **Clear Bindings** removes the Insert combo along with the other bindings.
+
 ## [3.6.4]
 
 First Pro release. Built on the open-source EVE-O Preview project, retargeted to .NET 8 with the additions below.
@@ -39,4 +48,5 @@ First Pro release. Built on the open-source EVE-O Preview project, retargeted to
 - Functional identifiers are unchanged from upstream (config file `EVE-O-Preview.json`, assembly name, process name, mutex), so existing profiles keep loading.
 - Windows only — client window tracking relies on Windows DLLs.
 
+[3.7.0]: https://github.com/Y2KZIGEN/eve-o-preview-pro/releases/tag/v3.7.0
 [3.6.4]: https://github.com/Y2KZIGEN/eve-o-preview-pro/releases/tag/v3.6.4

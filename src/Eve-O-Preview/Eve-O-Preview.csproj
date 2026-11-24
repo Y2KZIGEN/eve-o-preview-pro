@@ -8,7 +8,7 @@
 	  <RootNamespace>EveOPreview</RootNamespace>
     <AssemblyName>EVE-O-Preview</AssemblyName>
     <!-- EVE-O-Preview Pro version. Scheme: Features.Subfeatures.Fixes -->
-    <Version>3.6.4</Version>
+    <Version>3.7.0</Version>
     <Product>EVE-O-Preview Pro</Product>
 	  <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -69,8 +69,8 @@
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <UseWPF>True</UseWPF>
-    <AssemblyVersion>3.6.4.0</AssemblyVersion>
-    <FileVersion>3.6.4.0</FileVersion>
+    <AssemblyVersion>3.7.0.0</AssemblyVersion>
+    <FileVersion>3.7.0.0</FileVersion>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Build|AnyCPU'">
